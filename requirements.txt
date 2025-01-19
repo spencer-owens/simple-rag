@@ -1,6 +1,7 @@
 # FastAPI and server
-fastapi
-uvicorn
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+gunicorn>=21.2.0  # Added as backup WSGI server
 python-multipart  # For handling form data if needed
 
 # RAG Dependencies
