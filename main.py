@@ -27,7 +27,11 @@ init_langsmith()
 # Configure CORS - single source of truth for CORS handling
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://chat-genius-sooty.vercel.app"],
+    allow_origins=[
+        "https://chat-genius-sooty.vercel.app",  # Production
+        "http://localhost:3000",                 # Local frontend development
+        "http://127.0.0.1:3000",                # Alternative local frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
