@@ -1,6 +1,7 @@
 # FastAPI and server
 fastapi
 uvicorn
+python-multipart  # For handling form data if needed
 
 # RAG Dependencies
 langchain>=0.2.15
@@ -15,3 +16,8 @@ langsmith>=0.1.0
 # Utilities
 python-dotenv==1.0.1
 pydantic==2.8.2
+pydantic-settings==2.2.1
+cachetools==5.3.2
+
+# Logging and error handling
+typing-extensions>=4.5.0  # Often needed for type hints
