@@ -21,6 +21,15 @@ load_dotenv('.env.local')
 
 app = FastAPI(title="Chat Genius RAG API")
 
+@app.get("/")
+async def root():
+    """Root endpoint to verify server is running"""
+    return {
+        "status": "online",
+        "port": os.getenv("PORT", "8000"),
+        "environment": os.getenv("RAILWAY_ENVIRONMENT", "local")
+    }
+
 # Initialize LangSmith
 init_langsmith()
 
@@ -214,5 +223,12 @@ async def test_cors():
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", "8000"))  # Default to 8000 if PORT not set
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.getenv("PORT", "8000"))
+    logger.info(f"Starting server on port {port}")
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True if os.getenv("ENVIRONMENT") == "development" else False,
+        workers=4
+    )
