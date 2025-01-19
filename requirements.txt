@@ -15,5 +15,3 @@ langsmith>=0.1.0
 # Utilities
 python-dotenv==1.0.1
 pydantic==2.8.2
-pydantic-settings==2.2.1
-cachetools==5.3.2
