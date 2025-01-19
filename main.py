@@ -33,8 +33,15 @@ app.add_middleware(
         "http://127.0.0.1:3000",                # Alternative local frontend
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+    ],
+    expose_headers=["*"],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
 
@@ -207,5 +214,5 @@ async def test_cors():
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", "8000"))  # Default to 8000 if PORT not set
     uvicorn.run(app, host="0.0.0.0", port=port)
