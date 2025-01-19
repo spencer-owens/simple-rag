@@ -15,9 +15,19 @@ from typing import Callable
 import traceback
 import os
 from dotenv import load_dotenv
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # Load environment variables from .env.local
 load_dotenv('.env.local')
+
+# Custom middleware to add CORS headers
+class CORSHeaderMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "https://chat-genius-sooty.vercel.app"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
 
 app = FastAPI(title="Chat Genius RAG API")
 
@@ -39,6 +49,9 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=86400,  # Cache preflight requests for 24 hours
 )
+
+# Add custom CORS headers middleware
+app.add_middleware(CORSHeaderMiddleware)
 
 # Add rate limiting middleware
 app.middleware("http")(rate_limit_middleware)
@@ -120,7 +133,9 @@ async def ask_question(request: QuestionRequest):
             # Remove cached field if it exists in the cached data
             if 'cached' in cached:
                 del cached['cached']
-            return AIResponse(**cached, cached=True)
+            response = JSONResponse(content=cached)
+            response.headers["Access-Control-Allow-Origin"] = "https://chat-genius-sooty.vercel.app"
+            return response
         
         # Get services
         try:
@@ -173,6 +188,8 @@ async def ask_question(request: QuestionRequest):
         cache_response(request.question, response.model_dump())
         
         logger.info("Successfully generated response")
+        response = JSONResponse(content=response.model_dump())
+        response.headers["Access-Control-Allow-Origin"] = "https://chat-genius-sooty.vercel.app"
         return response
         
     except Exception as e:
@@ -205,7 +222,12 @@ async def debug_env():
 @app.options("/ask")
 async def options_ask():
     """Handle OPTIONS preflight request"""
-    return {"status": "ok"}
+    headers = {
+        "Access-Control-Allow-Origin": "https://chat-genius-sooty.vercel.app",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    }
+    return JSONResponse(content={"status": "ok"}, headers=headers)
 
 @app.get("/test-cors")
 async def test_cors():
