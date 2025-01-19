@@ -221,14 +221,30 @@ async def test_cors():
     """Test endpoint to verify CORS configuration"""
     return {"message": "CORS is working!"}
 
+@app.on_event("startup")
+async def startup_event():
+    """Log diagnostic information on startup"""
+    logger.info("Application starting up")
+    logger.info(f"PORT env var: {os.getenv('PORT', 'not set')}")
+    logger.info(f"RAILWAY_ENVIRONMENT: {os.getenv('RAILWAY_ENVIRONMENT', 'not set')}")
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info("Configured CORS origins: %s", app.state.cors_origins if hasattr(app.state, 'cors_origins') else 'Not set')
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Log shutdown event"""
+    logger.info("Application shutting down")
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8000"))
     logger.info(f"Starting server on port {port}")
     uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
+        app,  # Use app directly instead of "main:app"
+        host="0.0.0.0",  # Bind to all IPv4 interfaces
         port=port,
-        reload=True if os.getenv("ENVIRONMENT") == "development" else False,
-        workers=4
+        log_level="info",
+        proxy_headers=True,  # Trust proxy headers
+        forwarded_allow_ips="*",  # Trust forwarded IP headers
+        workers=1  # Start with single worker for debugging
     )
