@@ -30,16 +30,12 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",  # Local development
         "https://chat-genius-sooty.vercel.app",  # Production frontend
+        "https://chat-genius.vercel.app",  # Alternative production URL
+        "https://chat-genius-*",  # Any Vercel preview deployments
     ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Make sure OPTIONS is included for preflight
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "Access-Control-Allow-Headers",
-        "Access-Control-Allow-Origin",
-        "Access-Control-Allow-Methods",
-    ],
+    allow_credentials=False,  # Change to False since we're not using cookies
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
     expose_headers=["*"],
     max_age=86400,  # Cache preflight requests for 24 hours
 )
