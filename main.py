@@ -29,11 +29,17 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # Local development
-        "https://chat-genius-sooty.vercel.app"  # Production frontend
+        "https://chat-genius-sooty.vercel.app",  # Production frontend
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Make sure OPTIONS is included for preflight
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Access-Control-Allow-Headers",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Methods",
+    ],
     expose_headers=["*"],
     max_age=86400,  # Cache preflight requests for 24 hours
 )
@@ -199,6 +205,16 @@ async def debug_env():
         "pinecone_key_exists": bool(os.getenv('PINECONE_API_KEY')),
         "langchain_key_exists": bool(os.getenv('LANGCHAIN_API_KEY')),
     }
+
+@app.options("/ask")
+async def options_ask():
+    """Handle OPTIONS preflight request"""
+    return {"status": "ok"}
+
+@app.get("/test-cors")
+async def test_cors():
+    """Test endpoint to verify CORS configuration"""
+    return {"message": "CORS is working!"}
 
 if __name__ == "__main__":
     import uvicorn
