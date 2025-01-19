@@ -43,7 +43,8 @@ app.add_middleware(
         "https://chat-genius.vercel.app",  # Alternative production URL
         "https://chat-genius-*",  # Any Vercel preview deployments
     ],
-    allow_credentials=False,  # Change to False since we're not using cookies
+    allow_credentials=True,
+    allow_origins=origins,  # Change to False since we're not using cookies
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
     expose_headers=["*"],
