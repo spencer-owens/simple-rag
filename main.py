@@ -1,20 +1,29 @@
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from typing import List, Optional
+import os
+import time
+import logging
+from dotenv import load_dotenv
+import openai
+from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
+from langchain_pinecone import Pinecone
+
 from app.models import QuestionRequest, AIResponse, RetrievedDocument
-from app.middleware.rate_limit import rate_limit_middleware
-from app.core.cache import get_cached_response, cache_response
+from app.models import JeopardyRequest, JeopardyResponse
+from app.services.jeopardy import get_jeopardy_vectorstore, get_jeopardy_answer, get_jeopardy_retriever
+from app.services.llm import get_answer
 from app.services.embeddings import get_vectorstore, get_retriever
 from app.services.query_gen import get_query_generator, reciprocal_rank_fusion
-from app.services.llm import get_answer
+from app.middleware.rate_limit import rate_limit_middleware
+from app.core.cache import get_cached_response, cache_response
 from app.core.errors import RAGError, VectorStoreError, QueryGenerationError, LLMError, format_error_response
 from app.core.logging import logger
 from app.core.langsmith import init_langsmith
-import time
 from typing import Callable
 import traceback
-import os
-from dotenv import load_dotenv
 
 # Load environment variables from .env.local
 load_dotenv('.env.local')
@@ -234,6 +243,66 @@ async def startup_event():
 async def shutdown_event():
     """Log shutdown event"""
     logger.info("Application shutting down")
+
+@app.post("/jeopardy", response_model=JeopardyResponse)
+async def ask_jeopardy(request: JeopardyRequest):
+    logger.info(
+        "Processing Jeopardy question",
+        extra={"question": request.question, "user_id": request.user_id}
+    )
+    
+    try:
+        # Check cache first
+        cached = get_cached_response(request.question)
+        if cached:
+            logger.info("Returning cached response")
+            return cached
+        
+        # Get Jeopardy vectorstore and retriever
+        try:
+            vectorstore = get_jeopardy_vectorstore()
+            retriever = get_jeopardy_retriever(vectorstore)
+        except Exception as e:
+            raise VectorStoreError(str(e))
+        
+        # Get relevant documents
+        try:
+            docs = retriever.get_relevant_documents(request.question)
+            logger.info(
+                "Retrieved Jeopardy documents",
+                extra={"num_docs": len(docs)}
+            )
+        except Exception as e:
+            raise VectorStoreError(f"Failed to retrieve documents: {str(e)}")
+        
+        # Generate answer
+        try:
+            result = get_jeopardy_answer(request.question, docs)
+        except Exception as e:
+            raise LLMError(str(e))
+        
+        # Format response
+        response = JeopardyResponse(
+            answer=result["answer"],
+            sources=result["sources"],
+            cached=False
+        )
+        
+        # Cache the response
+        cache_response(request.question, response.model_dump())
+        
+        logger.info("Successfully generated Jeopardy response")
+        return response
+        
+    except Exception as e:
+        logger.error(
+            "Failed to process Jeopardy question",
+            extra={
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }
+        )
+        raise
 
 if __name__ == "__main__":
     import uvicorn
